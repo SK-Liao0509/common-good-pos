@@ -161,6 +161,11 @@ img{max-width:100%}
 .login-card input::placeholder{color:rgba(246,235,221,.5)}
 .login-card .primary{margin-top:14px;background:var(--on-leather);color:var(--leather-deep);padding:13px;font-size:16px}
 .login-card .err{min-height:1.4em;margin:4px 0 0;font-size:14px;font-weight:700}
+.cbox{padding-top:18px}
+.cform{display:flex;gap:8px;padding:12px 0 6px;flex-wrap:wrap;align-items:center}
+.cform input{flex:1 1 150px;min-width:0;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit;font-size:16px}
+.cform #cPrice{flex:0 1 110px;font-variant-numeric:tabular-nums}
+.chint{font-size:12px;color:var(--muted);margin:0 0 4px}
 </style>
 </head>
 <body>
@@ -181,6 +186,16 @@ img{max-width:100%}
 </header>
 
 <nav class="tabs" aria-label="酒單分類"><div class="wrap" id="tabs"></div></nav>
+<div class="wrap"><section id="sec-custom" class="cbox" style="scroll-margin-top:56px">
+  <div class="sec-h"><h2>Custom</h2><span>自訂品項</span></div>
+  <form id="cForm" class="cform">
+    <input id="cName" maxlength="20" placeholder="品名，例如 生啤酒" autocomplete="off" aria-label="自訂品名">
+    <input id="cPrice" inputmode="numeric" maxlength="6" placeholder="金額" autocomplete="off" aria-label="自訂金額">
+    <button class="addbtn" type="submit">加入</button>
+  </form>
+  <p class="chint">菜單上沒有的品項，自己輸入名稱和金額，加到目前選的位子。</p>
+  <div id="cList"></div>
+</section></div>
 <main class="wrap" id="menu"></main>
 
 <div class="bar"><div class="wrap">
@@ -280,8 +295,11 @@ try{st.seat=localStorage.getItem("cg-seat")||null}catch(e){}
 if(st.seat&&!SEATS.includes(st.seat))st.seat=null;
 const saveSeat=()=>{try{st.seat?localStorage.setItem("cg-seat",st.seat):localStorage.removeItem("cg-seat")}catch(e){}};
 
+const vid=c=>c.i==="custom"?`cx:${c.p}:${c.n}`:c.i;
+function regCustom(id,n,p){if(!ITEMS[id])ITEMS[id]={id,en:n,zh:"自訂",price:Number(p)||0,note:"",ing:"",custom:true};return ITEMS[id]}
+function cupData(id,s,t){const it=ITEMS[id];return it&&it.custom?{i:"custom",n:it.en,p:it.price,s,t}:{i:id,s,t}}
 function rebuild(){
-  st.lines={};cups.forEach(c=>{const k=c.i+"|"+c.s;st.lines[k]=(st.lines[k]||0)+1});
+  st.lines={};cups.forEach(c=>{if(c.i==="custom")regCustom(vid(c),c.n,c.p);const k=vid(c)+"|"+c.s;st.lines[k]=(st.lines[k]||0)+1});
   st.bills=bills.slice().sort((a,b)=>a.time-b.time);st.svc=svcSetting;render();
 }
 function setSync(){
@@ -303,8 +321,8 @@ async function batchRun(refs,fn){
   for(let i=0;i<refs.length;i+=450){const b=writeBatch(db);refs.slice(i,i+450).forEach(r=>fn(b,r));await b.commit()}
 }
 const store={
-  addCup:(i,s)=>{if(!guard())return;addDoc(collection(db,"cups"),{i,s,t:Date.now()}).catch(fail)},
-  removeCup:(i,s)=>{if(!guard())return;const last=cups.filter(c=>c.i===i&&c.s===s).sort((a,b)=>b.t-a.t)[0];
+  addCup:(i,s)=>{if(!guard())return;addDoc(collection(db,"cups"),cupData(i,s,Date.now())).catch(fail)},
+  removeCup:(i,s)=>{if(!guard())return;const last=cups.filter(c=>vid(c)===i&&c.s===s).sort((a,b)=>b.t-a.t)[0];
     if(last)deleteDoc(doc(db,"cups",last.id)).catch(fail)},
   delCups:async ids=>{if(!guard())return false;
     batchRun(ids.map(id=>doc(db,"cups",id)),(b,r)=>b.delete(r)).catch(fail);return true},
@@ -333,7 +351,7 @@ async function checkout(bill,ids){
 }
 async function voidBill(b){
   if(!guard())return false;
-  const back=[];b.lines.forEach(l=>{const id=l.i||Object.keys(ITEMS).find(k=>ITEMS[k].en===l.en);if(id)for(let n=0;n<l.q;n++)back.push({i:id,s:l.s,t:Date.now()+n})});
+  const back=[];b.lines.forEach(l=>{const id=l.i||Object.keys(ITEMS).find(k=>ITEMS[k].en===l.en);if(!id)return;if(id.startsWith("cx:"))regCustom(id,l.en,l.price);for(let n=0;n<l.q;n++)back.push(cupData(id,l.s,Date.now()+n))});
   try{const bt=writeBatch(db);bt.update(doc(db,"bills",b.id),{void:true});back.forEach(c=>bt.set(doc(collection(db,"cups")),c));await bt.commit();return true}
   catch(e){fail(e);return false}
 }
@@ -384,7 +402,7 @@ function renderSeats(){
   $("seatLbl").textContent=st.seat?`正在幫 ${st.seat} 點酒`:"先選位子，再點酒";
 }
 function renderTabs(){
-  $("tabs").innerHTML=SECTIONS.map(s=>`<button class="tab" data-s="${s.id}">${esc(s.zh)}</button>`).join("");
+  $("tabs").innerHTML=`<button class="tab" data-s="custom">自訂品項</button>`+SECTIONS.map(s=>`<button class="tab" data-s="${s.id}">${esc(s.zh)}</button>`).join("");
   $("tabs").querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.getElementById("sec-"+b.dataset.s).scrollIntoView({behavior:matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth"})});
 }
 function renderMenu(){
@@ -404,8 +422,13 @@ function renderMenu(){
         ${all?`<div class="who">${q?`${s} ${q} 杯`:""}${all>q?`${q?" · ":""}全場共 ${all} 杯`:""}</div>`:""}
         </div></div>`}).join("")}
   </section>`).join("")+`<p class="empty" style="padding-block:24px 8px;text-align:center">價格以新台幣計，依店內實際收費為準</p>`;
-  $("menu").querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{if(!st.seat)return needSeat();change(b.dataset.p,st.seat,1)});
-  $("menu").querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>change(b.dataset.m,st.seat,-1));
+  const mine=s?Object.keys(st.lines).filter(k=>k.startsWith("cx:")&&k.endsWith("|"+s)).map(k=>ITEMS[k.split("|")[0]]).filter(Boolean):[];
+  $("cList").innerHTML=mine.map(it=>{const q=qty(it.id,s);return `<div class="item"><div class="nm"><div class="en">${esc(it.en)}</div><div class="note">自訂 · ${s}</div></div>
+    <div class="side"><div class="price">${it.price}</div><div class="step"><button data-m="${esc(it.id)}" aria-label="少一杯">−</button><span class="q">${q}</span><button data-p="${esc(it.id)}" aria-label="多一杯">＋</button></div></div></div>`}).join("");
+  ["menu","cList"].forEach(box=>{
+    $(box).querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{if(!st.seat)return needSeat();change(b.dataset.p,st.seat,1)});
+    $(box).querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>change(b.dataset.m,st.seat,-1));
+  });
 }
 function calc(){
   const per={};SEATS.forEach(s=>per[s]={lines:[],sub:0,cnt:0});let cnt=0,sub=0;
@@ -609,7 +632,19 @@ $("openSheet").onclick=()=>openSheet("order");
 $("openPay").onclick=()=>{co.seats=st.seat&&seatCount(st.seat)?[st.seat]:[];co.cash="";co.last5="";openSheet("pay")};
 $("scrim").onclick=closeSheet;
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("sheet").hidden)closeSheet()});
-$("randomBtn").onclick=()=>{if(!st.seat)return needSeat();const ids=Object.keys(ITEMS).filter(i=>!i.startsWith("bar-"));const id=ids[Math.floor(Math.random()*ids.length)];const it=ITEMS[id];
+$("cForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  if(!st.seat)return needSeat();
+  const n=$("cName").value.replace(/[|]/g,"").trim();
+  const p=parseInt($("cPrice").value.replace(/\D/g,""),10);
+  if(!n){toast("請輸入品名");$("cName").focus();return}
+  if(!(p>0)){toast("請輸入金額");$("cPrice").focus();return}
+  const id=`cx:${p}:${n}`;regCustom(id,n,p);
+  store.addCup(id,st.seat);
+  $("cName").value="";$("cPrice").value="";document.activeElement&&document.activeElement.blur();
+  toast(`${st.seat}：${n} ${p} 元已加入`);
+});
+$("randomBtn").onclick=()=>{if(!st.seat)return needSeat();const ids=Object.keys(ITEMS).filter(i=>!i.startsWith("bar-")&&!i.startsWith("cx:"));const id=ids[Math.floor(Math.random()*ids.length)];const it=ITEMS[id];
   change(id,st.seat,1);toast(`🎲 ${st.seat}：${it.en}（${it.zh}）`);};
 renderTabs();render();setSync();
 </script>
