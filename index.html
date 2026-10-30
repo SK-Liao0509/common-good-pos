@@ -211,9 +211,10 @@ import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, addDoc, deleteDoc, setDoc, onSnapshot, query, orderBy, limit, writeBatch, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const SECTIONS=[
- {id:"bar",en:"Bar & Zero Proof",zh:"吧台特調 · 無酒精",items:[
+ {id:"bar",en:"Bar, Shots & Zero Proof",zh:"吧台特調 · Shot · 無酒精",items:[
   ["Bartender's Choice","吧台特調",380,"依喜好現調，可告知基酒與口味","跟調酒師說想喝的方向"],
-  ["Zero Proof","無酒精飲料",200,"不含酒精","不喝酒的朋友"]]},
+  ["Zero Proof","無酒精飲料",200,"不含酒精","不喝酒的朋友"],
+  ["Shot","Shot",100,"一口乾","乾杯用"]]},
  {id:"sig",en:"Signatures",zh:"經典特調",items:[
   ["Heart of the Ocean","海洋之心",300,"Vodka, Dita, MB Blue Curacao","藍色荔枝，清爽"],
   ["White Peach","白桃",300,"Vodka, Nectarine, Peach, Jin Xuan Oolong","桃子配金萱烏龍"],
