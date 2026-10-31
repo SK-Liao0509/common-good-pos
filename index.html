@@ -213,7 +213,7 @@ img{max-width:100%}
     <h2>Common Good</h2>
     <p class="sub">點單系統 · 平板登入</p>
     <label for="email">帳號</label>
-    <input id="email" type="email" autocomplete="username" placeholder="bar@commongood.tw" required>
+    <input id="email" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="例如 bar" required>
     <label for="pw">密碼</label>
     <input id="pw" type="password" autocomplete="current-password" required>
     <button class="primary" id="loginBtn" type="submit">登入</button>
@@ -364,10 +364,11 @@ function listen(){
 }
 
 /* ===== 登入 ===== */
-const ERR={"auth/invalid-credential":"帳號或密碼錯誤","auth/wrong-password":"帳號或密碼錯誤","auth/user-not-found":"沒有這個帳號","auth/invalid-email":"Email 格式不對","auth/too-many-requests":"嘗試太多次，請稍後再試","auth/network-request-failed":"網路連線失敗","auth/unauthorized-domain":"這個網址還沒加到 Firebase 的已授權網域"};
+const ERR={"auth/invalid-credential":"帳號或密碼錯誤","auth/wrong-password":"帳號或密碼錯誤","auth/user-not-found":"沒有這個帳號","auth/invalid-email":"帳號只能用英文字母、數字、. _ -","auth/too-many-requests":"嘗試太多次，請稍後再試","auth/network-request-failed":"網路連線失敗","auth/unauthorized-domain":"這個網址還沒加到 Firebase 的已授權網域"};
 $("loginForm").addEventListener("submit",async e=>{
   e.preventDefault();const btn=$("loginBtn");btn.disabled=true;btn.textContent="登入中…";$("loginErr").textContent="";
-  try{await signInWithEmailAndPassword(auth,$("email").value.trim(),$("pw").value)}
+  const raw=$("email").value.trim().toLowerCase();const acct=raw.includes("@")?raw:raw+"@commongood.tw";
+  try{await signInWithEmailAndPassword(auth,acct,$("pw").value)}
   catch(err){$("loginErr").textContent=ERR[err.code]||("登入失敗："+err.code)}
   btn.disabled=false;btn.textContent="登入";
 });
