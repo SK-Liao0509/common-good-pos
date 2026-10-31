@@ -4,8 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#C93A22">
+<meta name="description" content="Common Good 點單、結帳與營收系統">
 <meta name="robots" content="noindex">
 <title>Common Good 點酒單</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Common Good">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus+SC&family=Noto+Serif+TC:wght@400;600;700&display=swap">
 <style>
 /* Layout: leather-red masthead + guest chips, cream menu cards grouped by menu page, sticky tab bar; bottom tally bar opens the order sheet */
@@ -166,6 +174,43 @@ img{max-width:100%}
 .cform input{flex:1 1 150px;min-width:0;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit;font-size:16px}
 .cform #cPrice{flex:0 1 110px;font-variant-numeric:tabular-nums}
 .chint{font-size:12px;color:var(--muted);margin:0 0 4px}
+.seg{background:var(--chip);padding:4px;border-radius:10px;gap:4px}
+.seg button{flex:1;border:0;background:transparent;font-family:var(--f-body)}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12);font-weight:700;border:0}
+.rnav{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rnav b{font-size:17px;min-width:0}
+.rnav .mini{min-width:34px;height:32px;font-size:16px}
+.rnav .mini[data-now]{font-size:12px;min-width:0}
+.rnav input[type=date]{margin-left:auto;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);font:inherit;font-size:14px}
+.meter{display:inline-block;vertical-align:middle;width:64px;height:6px;border-radius:3px;background:var(--chip);margin-left:8px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--gold);border-radius:3px}
+.pct{font-size:12px;color:var(--muted);margin-left:4px;font-variant-numeric:tabular-nums}
+.rank{display:inline-block;min-width:22px;color:var(--gold);font-weight:700;font-variant-numeric:tabular-nums}
+.dayrow{display:grid;grid-template-columns:96px 1fr auto 84px;gap:10px;align-items:center;width:100%;border:0;border-bottom:1px dashed var(--line);background:transparent;padding:7px 0;text-align:left;font-size:14px}
+.dayrow .meter{width:100%;margin:0}
+.dayrow .amt{text-align:right;font-weight:700}
+.dayrow:disabled{color:var(--muted);cursor:default}
+.dayrow:disabled .meter{visibility:hidden}
+.ed-sec{border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px;background:var(--card)}
+.ed-sec.off{opacity:.6}
+.ed-row{display:flex;gap:6px;flex-wrap:wrap}
+.ed-row input,.ed-fields input{flex:1 1 140px;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);font:inherit;font-size:16px}
+.ed-row input[data-sf="zh"]{font-weight:700}
+.ed-tools{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.ed-tools em,.ed-sum em{font-style:normal;font-size:11px;color:var(--leather);border:1px solid var(--leather);border-radius:3px;padding:0 4px}
+.ed-tools .mini:disabled{opacity:.35}
+.ed-item{border-top:1px dashed var(--line)}
+.ed-item.off .ed-nm{opacity:.55}
+.ed-sum{display:flex;justify-content:space-between;gap:10px;width:100%;border:0;background:transparent;padding:9px 2px;text-align:left;font-size:14px}
+.ed-sum .ed-nm{min-width:0}
+.ed-sum .ed-nm span{color:var(--muted)}
+.ed-sum .p{font-weight:700;font-variant-numeric:tabular-nums}
+.ed-item.open{background:var(--paper);border-radius:8px;padding:0 8px 10px;margin:4px -4px}
+.ed-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+.ed-fields label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);min-width:0}
+.ed-fields label input{flex:none;width:100%}
+.ed-fields .ed-tools{grid-column:1/-1}
+@media (max-width:420px){.dayrow{grid-template-columns:84px 1fr 72px}.dayrow>span:nth-child(3){display:none}}
 </style>
 </head>
 <body>
@@ -179,7 +224,7 @@ img{max-width:100%}
     </div>
     <div class="row" style="justify-content:space-between">
       <span class="lbl" id="seatLbl">先選位子，再點酒</span>
-      <span class="row" style="gap:6px"><button id="randomBtn" class="g">🎲 亂數選一杯</button><button id="logout" class="g" hidden>登出</button></span>
+      <span class="row" style="gap:6px"><button id="randomBtn" class="g">🎲 亂數選一杯</button><button id="adminBtn" class="g" hidden>⚙ 酒單</button><button id="logout" class="g" hidden>登出</button></span>
     </div>
     <div id="seats"></div>
   </div>
@@ -223,9 +268,10 @@ img{max-width:100%}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, addDoc, deleteDoc, setDoc, onSnapshot, query, orderBy, limit, writeBatch, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, addDoc, deleteDoc, setDoc, onSnapshot, query, where, orderBy, writeBatch, runTransaction, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const SECTIONS=[
+/* ===== 預設酒單（雲端沒有酒單時使用）===== */
+const DEFAULT_SECTIONS=[
  {id:"bar",en:"Bar, Shots & Zero Proof",zh:"吧台特調 · Shot · 無酒精",items:[
   ["Bartender's Choice","吧台特調",380,"依喜好現調，可告知基酒與口味","跟調酒師說想喝的方向"],
   ["Zero Proof","無酒精飲料",200,"不含酒精","不喝酒的朋友"],
@@ -257,7 +303,19 @@ const SECTIONS=[
   ["Ume Without You","你柚梅心焙我",350,"Whisky, Plum Wine, Roasted Tea Plum Candy, Yuzu, Hinoki Bitters","茶梅柚子","冷淡"],
   ["Afterglow","木已成舟",350,"Gin, Vodka, Sorghum Liquor, Rum, St-Germain, Soda, Butterfly Pea Flower","會變色，偏烈","漸行漸遠"]]}
 ];
-const ITEMS={};SECTIONS.forEach(s=>s.items.forEach((it,i)=>{const id=s.id+"-"+i;ITEMS[id]={id,en:it[0],zh:it[1],price:it[2],ing:it[3],note:it[4],stage:it[5],sec:s};}));
+/* 可以修改酒單的帳號 */
+const ADMINS=["admin@commongood.tw"];
+
+function defaultMenu(){return DEFAULT_SECTIONS.map(s=>({id:s.id,en:s.en,zh:s.zh,off:false,
+  items:s.items.map((it,i)=>({id:s.id+"-"+i,en:it[0],zh:it[1],price:it[2],ing:it[3]||"",note:it[4]||"",stage:it[5]||"",off:false}))}))}
+let MENU=defaultMenu();
+const ITEMS={};
+function buildItems(){
+  for(const k in ITEMS)if(!k.startsWith("cx:"))delete ITEMS[k];
+  MENU.forEach(sec=>sec.items.forEach(it=>{ITEMS[it.id]={...it,sec}}));
+}
+buildItems();
+const visibleSections=()=>MENU.filter(s=>!s.off&&s.items.some(i=>!i.off));
 
 const ZONES=[["B 區",["B1","B2","B3","B4","B5","B6","B7","B8","B9"]],["D / W",["D1","W1"]],["S 區",["S1","S2","S3"]],["O 區",["O1"]]];
 const SEATS=ZONES.flatMap(z=>z[1]);
@@ -265,14 +323,22 @@ const METHODS=["現金","轉帳"];
 
 const $=id=>document.getElementById(id);
 const fmt=n=>"NT$"+Math.round(n).toLocaleString();
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const svcOf=n=>Math.round(n*0.1);
 /* 營業日：清晨 6 點以前的帳算前一天 */
 const CUTOFF=6;
 const pad=n=>String(n).padStart(2,"0");
-const bday=t=>{const d=new Date(t-CUTOFF*3600e3);return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`};
-const bdayLabel=k=>{const [y,m,d]=k.split("-").map(Number);return `${m}/${d}（${"日一二三四五六"[new Date(y,m-1,d).getDay()]}）`};
+const keyOf=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const bday=t=>keyOf(new Date(t-CUTOFF*3600e3));
+const parts=k=>k.split("-").map(Number);
+const bdayStart=k=>{const [y,m,d]=parts(k);return new Date(y,m-1,d,CUTOFF).getTime()};
+const addDays=(k,n)=>{const [y,m,d]=parts(k);return keyOf(new Date(y,m-1,d+n))};
+const WK="日一二三四五六";
+const bdayLabel=k=>{const [y,m,d]=parts(k);return `${m}/${d}（${WK[new Date(y,m-1,d).getDay()]}）`};
 const hm=t=>{const d=new Date(t);return `${pad(d.getHours())}:${pad(d.getMinutes())}`};
+const monthOf=k=>k.slice(0,7);
+const addMonths=(mk,n)=>{const [y,m]=parts(mk);const d=new Date(y,m-1+n,1);return `${d.getFullYear()}-${pad(d.getMonth()+1)}`};
+const uidm=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 
 /* ===== Firebase ===== */
 const firebaseConfig={
@@ -289,7 +355,8 @@ let db;
 try{db=initializeFirestore(app,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})})}
 catch(e){db=getFirestore(app)}
 
-let cups=[], bills=[], svcSetting=true, ready=false, me=null, unsubs=[];
+let cups=[], bills=[], svcSetting=true, ready=false, me=null, unsubs=[], LIVE_START=0;
+const isAdmin=()=>!!me&&ADMINS.includes((me.email||"").toLowerCase());
 const st={seat:null,lines:{},bills:[],svc:true};
 try{st.seat=localStorage.getItem("cg-seat")||null}catch(e){}
 if(st.seat&&!SEATS.includes(st.seat))st.seat=null;
@@ -300,7 +367,15 @@ function regCustom(id,n,p){if(!ITEMS[id])ITEMS[id]={id,en:n,zh:"自訂",price:Nu
 function cupData(id,s,t){const it=ITEMS[id];return it&&it.custom?{i:"custom",n:it.en,p:it.price,s,t}:{i:id,s,t}}
 function rebuild(){
   st.lines={};cups.forEach(c=>{if(c.i==="custom")regCustom(vid(c),c.n,c.p);const k=vid(c)+"|"+c.s;st.lines[k]=(st.lines[k]||0)+1});
-  st.bills=bills.slice().sort((a,b)=>a.time-b.time);st.svc=svcSetting;render();
+  st.bills=bills.slice().sort((a,b)=>a.time-b.time);st.svc=svcSetting;render(true);
+}
+function applyMenu(d){
+  let m=null;
+  try{if(d&&Array.isArray(d.sections))m=d.sections.map(s=>({id:String(s.id),en:String(s.en||""),zh:String(s.zh||""),off:!!s.off,
+    items:(Array.isArray(s.items)?s.items:[]).map(i=>({id:String(i.id),en:String(i.en||""),zh:String(i.zh||""),price:Math.max(0,Math.round(Number(i.price)||0)),
+      ing:String(i.ing||""),note:String(i.note||""),stage:String(i.stage||""),off:!!i.off}))}))}catch(e){m=null}
+  MENU=m&&m.length?m:defaultMenu();
+  buildItems();renderTabs();render(true);
 }
 function setSync(){
   const el=$("sync");el.classList.remove("warn");
@@ -312,7 +387,7 @@ addEventListener("online",setSync);addEventListener("offline",setSync);
 
 function fail(e){
   console.error(e);
-  if(e&&e.code==="permission-denied")toast("沒有權限，請重新登入");
+  if(e&&e.code==="permission-denied")toast("這個帳號沒有權限做這件事");
   else if(e&&e.code==="resource-exhausted")toast("雲端用量已滿，請稍後再試");
   else toast("儲存失敗，請再試一次");
 }
@@ -327,8 +402,6 @@ const store={
   delCups:async ids=>{if(!guard())return false;
     batchRun(ids.map(id=>doc(db,"cups",id)),(b,r)=>b.delete(r)).catch(fail);return true},
   setSvc:v=>{if(!guard())return;setDoc(doc(db,"settings","main"),{svc:v}).catch(fail)},
-  clearBills:async()=>{if(!guard())return false;
-    batchRun(bills.map(b=>doc(db,"bills",b.id)),(b,r)=>b.delete(r)).catch(fail);return true},
 };
 async function checkout(bill,ids){
   if(!guard())return false;
@@ -358,9 +431,12 @@ async function voidBill(b){
 function listen(){
   unsubs.forEach(u=>u());unsubs=[];
   const onErr=e=>{console.error(e);if(e.code==="permission-denied")toast("沒有讀取權限，請檢查資料庫規則")};
+  /* 即時同步最近 3 個營業日的帳單；更早的帳在「營收」查詢時才讀取 */
+  LIVE_START=bdayStart(addDays(bday(Date.now()),-2));
   unsubs.push(onSnapshot(collection(db,"cups"),s=>{cups=s.docs.map(d=>({id:d.id,...d.data()}));rebuild()},onErr));
-  unsubs.push(onSnapshot(query(collection(db,"bills"),orderBy("time","desc"),limit(1000)),s=>{bills=s.docs.map(d=>({id:d.id,...d.data()}));rebuild()},onErr));
+  unsubs.push(onSnapshot(query(collection(db,"bills"),where("time",">=",LIVE_START),orderBy("time","desc")),s=>{bills=s.docs.map(d=>({id:d.id,...d.data()}));rebuild()},onErr));
   unsubs.push(onSnapshot(doc(db,"settings","main"),s=>{svcSetting=s.exists()?s.data().svc!==false:true;rebuild()},onErr));
+  unsubs.push(onSnapshot(doc(db,"settings","menu"),s=>applyMenu(s.exists()?s.data():null),onErr));
 }
 
 /* ===== 登入 ===== */
@@ -379,13 +455,14 @@ $("logout").onclick=()=>{
 };
 onAuthStateChanged(auth,u=>{
   me=u;ready=!!u;
-  $("login").hidden=!!u;$("logout").hidden=!u;$("logout").textContent="登出";
-  if(u){listen()}else{unsubs.forEach(x=>x());unsubs=[];cups=[];bills=[];$("pw").value=""}
+  $("login").hidden=!!u;$("logout").hidden=!u;$("logout").textContent="登出";$("adminBtn").hidden=!isAdmin();
+  repCache={};draft=null;
+  if(u){listen()}else{unsubs.forEach(x=>x());unsubs=[];cups=[];bills=[];LIVE_START=0;$("pw").value="";closeSheet()}
   setSync();rebuild();
 });
 
 /* ===== 介面 ===== */
-let mode="order", confirming=null, showText=false, repDay=null, busy=false;
+let mode="order", confirming=null, showText=false, busy=false;
 let co={seats:[],method:"現金",cash:"",last5:""};
 const okLast5=()=>/^\d{5}$/.test(co.last5);
 
@@ -403,23 +480,23 @@ function renderSeats(){
   $("seatLbl").textContent=st.seat?`正在幫 ${st.seat} 點酒`:"先選位子，再點酒";
 }
 function renderTabs(){
-  $("tabs").innerHTML=`<button class="tab" data-s="custom">自訂品項</button>`+SECTIONS.map(s=>`<button class="tab" data-s="${s.id}">${esc(s.zh)}</button>`).join("");
-  $("tabs").querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.getElementById("sec-"+b.dataset.s).scrollIntoView({behavior:matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth"})});
+  $("tabs").innerHTML=`<button class="tab" data-s="custom">自訂品項</button>`+visibleSections().map(s=>`<button class="tab" data-s="${esc(s.id)}">${esc(s.zh||s.en)}</button>`).join("");
+  $("tabs").querySelectorAll(".tab").forEach(b=>b.onclick=()=>{const t=document.getElementById("sec-"+b.dataset.s);if(t)t.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth"})});
 }
 function renderMenu(){
   const s=st.seat;
   $("menu").innerHTML=(s?"":`<div class="nudge">還沒選位子。先在上方點一個位子（例如 B3），再按「加入」。</div>`)+
-  SECTIONS.map(sec=>`<section id="sec-${sec.id}" style="scroll-margin-top:56px">
+  visibleSections().map(sec=>`<section id="sec-${esc(sec.id)}" style="scroll-margin-top:56px">
     <div class="sec-h"><h2>${esc(sec.en)}</h2><span>${esc(sec.zh)}</span></div>
-    ${sec.items.map((_,i)=>{const it=ITEMS[sec.id+"-"+i];const q=s?qty(it.id,s):0;const all=itemTotalQty(it.id);
+    ${sec.items.filter(i=>!i.off).map(it=>{const q=s?qty(it.id,s):0;const all=itemTotalQty(it.id);
       return `<div class="item"><div class="nm">
         <div class="en">${esc(it.en)}</div>
         <div class="zh">${it.stage?`<span class="stage">${esc(it.stage)}</span>`:""}${esc(it.zh)}</div>
-        <div class="note">${esc(it.note)}</div>
-        <div class="ing">${esc(it.ing)}</div></div>
+        ${it.note?`<div class="note">${esc(it.note)}</div>`:""}
+        ${it.ing?`<div class="ing">${esc(it.ing)}</div>`:""}</div>
         <div class="side"><div class="price">${it.price}</div>
-        ${q?`<div class="step"><button data-m="${it.id}" aria-label="少一杯">−</button><span class="q">${q}</span><button data-p="${it.id}" aria-label="多一杯">＋</button></div>`
-           :`<button class="addbtn" data-p="${it.id}">加入</button>`}
+        ${q?`<div class="step"><button data-m="${esc(it.id)}" aria-label="少一杯">−</button><span class="q">${q}</span><button data-p="${esc(it.id)}" aria-label="多一杯">＋</button></div>`
+           :`<button class="addbtn" data-p="${esc(it.id)}">加入</button>`}
         ${all?`<div class="who">${q?`${s} ${q} 杯`:""}${all>q?`${q?" · ":""}全場共 ${all} 杯`:""}</div>`:""}
         </div></div>`}).join("")}
   </section>`).join("")+`<p class="empty" style="padding-block:24px 8px;text-align:center">價格以新台幣計，依店內實際收費為準</p>`;
@@ -452,8 +529,9 @@ function renderBar(){
   }else{$("barTotal").textContent=fmt(c.sub);$("barCount").textContent=c.cnt?`全場 ${c.cnt} 杯（未含服務費）`:"還沒點酒";}
 }
 function head(){
-  return `<div class="row" style="justify-content:space-between"><h3>${{order:"全場點單",pay:"結帳",hist:"結帳紀錄",rep:"營收明細"}[mode]}</h3><button class="ghost" id="closeSheet">關閉</button></div>
-  <div class="modes" role="tablist">${[["order","點單"],["pay","結帳"],["hist","紀錄"],["rep","營收"]].map(([m,l])=>`<button data-mode="${m}" aria-pressed="${mode===m}">${l}</button>`).join("")}</div>`;
+  const tabs=[["order","點單"],["pay","結帳"],["hist","紀錄"],["rep","營收"]];if(isAdmin())tabs.push(["menu","酒單"]);
+  return `<div class="row" style="justify-content:space-between"><h3>${{order:"全場點單",pay:"結帳",hist:"結帳紀錄",rep:"營收報表",menu:"酒單管理"}[mode]}</h3><button class="ghost" id="closeSheet">關閉</button></div>
+  <div class="modes" role="tablist">${tabs.map(([m,l])=>`<button data-mode="${m}" aria-pressed="${mode===m}">${l}</button>`).join("")}</div>`;
 }
 
 /* ---- 點單 ---- */
@@ -462,7 +540,7 @@ function sheetOrder(c){
   if(!c.cnt)return `<p class="empty">還沒有點任何酒。先選位子，再回到酒單按「加入」。</p>`;
   SEATS.forEach(s=>{const p=c.per[s];if(!p.lines.length)return;
     h+=`<div class="person${s===st.seat?" cur":""}"><h4><span><span class="seat-tag">${s}</span></span><span class="p">${fmt(p.sub)}</span></h4>`+
-      p.lines.map(l=>`<div class="line"><span>${esc(l.it.en)} <span style="color:var(--muted)">${esc(l.it.zh)}</span></span><span class="p">${l.it.price} × ${l.q}</span><button class="x" data-k="${l.k}" aria-label="移除一杯">−</button></div>`).join("")+
+      p.lines.map(l=>`<div class="line"><span>${esc(l.it.en)} <span style="color:var(--muted)">${esc(l.it.zh)}</span></span><span class="p">${l.it.price} × ${l.q}</span><button class="x" data-k="${esc(l.k)}" aria-label="移除一杯">−</button></div>`).join("")+
       `<div class="row" style="justify-content:flex-end;padding-top:4px"><button class="mini" data-copy="${s}">複製</button><button class="mini" data-clr="${s}">清空</button><button class="mini go" data-pay="${s}">結帳 ${s}</button></div>`+
       (confirming===s?`<div class="confirm">確定清空 ${s} 的點單（不結帳）？<button class="primary" data-yes="${s}">清空</button><button class="ghost" data-no>取消</button></div>`:"")+`</div>`;});
   h+=`<div class="totals"><div class="t"><span>全場小計</span><span>${fmt(c.sub)}</span></div><div style="color:var(--muted);font-size:13px"><span>服務費在結帳時計算</span></div></div>
@@ -503,7 +581,7 @@ function sheetPay(c){
   h+=`<div class="actions"><button class="primary" id="doPay" ${blocked?"disabled style=\"opacity:.5\"":""}>${busy?"結帳中…":`確認結帳 ${fmt(d.total)}`}</button></div>`;
   return h;
 }
-/* ---- 紀錄 ---- */
+/* ---- 紀錄（最近 3 個營業日）---- */
 function sheetHist(){
   const today=bday(Date.now());
   const tb=st.bills.filter(b=>!b.void&&bday(b.time)===today);
@@ -511,70 +589,218 @@ function sheetHist(){
   let h=`<div class="stats"><div><b>${fmt(sum(tb))}</b><span>今日營收</span></div><div><b>${tb.length}</b><span>今日帳單</span></div><div><b>${tb.reduce((x,b)=>x+b.cnt,0)}</b><span>今日杯數</span></div></div>`;
   if(tb.length){const by={};tb.forEach(b=>by[b.method]=(by[b.method]||0)+b.total);
     h+=`<div style="font-size:13px;color:var(--muted)">${Object.entries(by).map(([m,v])=>`${m} ${fmt(v)}`).join(" · ")}${tb.some(b=>b.svc)?` · 服務費合計 ${fmt(tb.reduce((x,b)=>x+b.svc,0))}`:""}</div>`;}
-  if(!st.bills.length)return h+`<p class="empty">還沒有結帳紀錄。</p>`;
+  h+=`<p class="chint">這裡顯示最近 3 天的帳單。更早的帳請到「營收」查詢。</p>`;
+  if(!st.bills.length)return h+`<p class="empty">最近 3 天沒有結帳紀錄。</p>`;
   h+=`<div>${st.bills.slice().reverse().map(b=>{const t=new Date(b.time);
     return `<div class="bill" style="${b.void?"opacity:.45;text-decoration:line-through":""}"><div><span class="seat-tag" style="font-size:12px">${b.seats.join("+")}</span>${b.cnt} 杯 · ${b.method}${b.last5?` 後五碼 <b>${esc(b.last5)}</b>`:""}${b.svc?" · 含服務費":""}
       <div class="m">${t.getMonth()+1}/${t.getDate()} ${hm(b.time)} · ${b.lines.map(l=>`${esc(l.zh)}×${l.q}`).join("、")}</div></div>
       <div><div class="amt">${fmt(b.total)}</div>${b.void?"":`<button class="mini" data-void="${b.id}">作廢</button>`}</div>
       ${confirming==="v"+b.id?`<div class="confirm" style="grid-column:1/-1">作廢這張帳單？酒會回到 ${b.seats.join("+")} 的點單。<button class="primary" data-vyes="${b.id}">作廢</button><button class="ghost" data-no>取消</button></div>`:""}</div>`}).join("")}</div>
-  <div class="actions"><button class="ghost" id="copyDay">複製今日帳</button><button class="ghost" id="clrHist">清除所有紀錄</button></div>`;
-  if(confirming==="H")h+=`<div class="confirm">清除全部結帳紀錄（所有平板都會消失）？無法復原。<button class="primary" data-hyes>清除</button><button class="ghost" data-no>取消</button></div>`;
-  if(showText)h+=`<textarea id="txt" readonly>${esc(showText)}</textarea>`;
-  return h;
-}
-/* ---- 營收明細 ---- */
-function repData(){
-  const days=[...new Set([bday(Date.now()),...st.bills.filter(b=>!b.void).map(b=>bday(b.time))])].sort().reverse();
-  if(!repDay||!days.includes(repDay))repDay=days[0];
-  const bs=st.bills.filter(b=>!b.void&&bday(b.time)===repDay);
-  const voided=st.bills.filter(b=>b.void&&bday(b.time)===repDay).length;
-  const all=f=>bs.reduce((x,b)=>x+(f(b)||0),0);
-  const items={},seats={};
-  bs.forEach(b=>b.lines.forEach(l=>{const it=items[l.en]||(items[l.en]={en:l.en,zh:l.zh,q:0,amt:0});it.q+=l.q;it.amt+=l.price*l.q;seats[l.s]=(seats[l.s]||0)+l.price*l.q}));
-  const byM={};bs.forEach(b=>{const m=byM[b.method]||(byM[b.method]={n:0,amt:0});m.n++;m.amt+=b.total});
-  return{days,bs,voided,total:all(b=>b.total),sub:all(b=>b.sub),svc:all(b=>b.svc),cups:all(b=>b.cnt),
-    items:Object.values(items).sort((a,b)=>b.amt-a.amt||b.q-a.q),seats,byM,tr:bs.filter(b=>b.method==="轉帳")};
-}
-function repText(r){
-  let t=`Common Good 營收明細 ${bdayLabel(repDay)}\n\n總營收 ${r.total}\n酒水 ${r.sub} · 服務費 ${r.svc}\n帳單 ${r.bs.length} 張 · ${r.cups} 杯\n`;
-  t+=`\n【付款方式】\n`;Object.entries(r.byM).forEach(([m,v])=>t+=`${m} ${v.n} 筆 ${v.amt}\n`);
-  if(r.tr.length){t+=`\n【轉帳對帳】\n`;r.tr.forEach(b=>t+=`${hm(b.time)} ${b.seats.join("+")} 後五碼 ${b.last5||"-"} ${b.total}\n`);}
-  t+=`\n【品項】\n`;r.items.forEach(i=>t+=`${i.en}（${i.zh}）x${i.q} ${i.amt}\n`);
-  t+=`\n【帳單】\n`;r.bs.forEach(b=>t+=`${hm(b.time)} ${b.seats.join("+")} ${b.method}${b.last5?"("+b.last5+")":""} ${b.total}\n`);
-  if(r.voided)t+=`\n（另有 ${r.voided} 張作廢，未計入）`;
-  return t;
-}
-function sheetRep(){
-  const r=repData();
-  const row=(a,b,c)=>`<div class="line" style="grid-template-columns:1fr auto auto"><span>${a}</span><span class="p" style="color:var(--muted)">${b}</span><span class="p" style="min-width:70px;text-align:right">${c}</span></div>`;
-  let h=`<div class="fld"><span>營業日（清晨 6 點前算前一天）</span><div class="pick">${r.days.map(d=>`<button data-day="${d}" aria-pressed="${d===repDay}" style="font-family:var(--f-body)">${d===bday(Date.now())?"今天 ":""}${bdayLabel(d)}</button>`).join("")}</div></div>
-  <div style="text-align:center;padding:6px 0"><div style="font-size:12px;letter-spacing:.1em;color:var(--muted)">總營收</div><div style="font-size:34px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--leather)">${fmt(r.total)}</div></div>
-  <div class="stats"><div><b>${r.bs.length}</b><span>帳單</span></div><div><b>${r.cups}</b><span>杯數</span></div><div><b>${r.bs.length?fmt(r.total/r.bs.length):"—"}</b><span>平均每張</span></div></div>`;
-  if(!r.bs.length)return h+`<p class="empty">這天還沒有結帳的帳單。</p>`;
-  h+=`<div class="person"><h4><span>收入組成</span><span></span></h4>${row("酒水","",fmt(r.sub))}${row("服務費 10%","",fmt(r.svc))}${row("<b>合計</b>","",`<b>${fmt(r.total)}</b>`)}</div>
-  <div class="person"><h4><span>付款方式</span><span></span></h4>${Object.entries(r.byM).map(([m,v])=>row(m,`${v.n} 筆`,fmt(v.amt))).join("")}</div>`;
-  if(r.tr.length)h+=`<div class="person"><h4><span>轉帳對帳</span><span style="color:var(--muted);font-weight:400">後五碼</span></h4>${r.tr.map(b=>row(`${hm(b.time)} <span class="seat-tag" style="font-size:12px">${b.seats.join("+")}</span>`,`<b style="letter-spacing:.1em;color:var(--ink)">${esc(b.last5||"—")}</b>`,fmt(b.total))).join("")}</div>`;
-  h+=`<div class="person"><h4><span>品項明細</span><span style="color:var(--muted);font-weight:400">未含服務費</span></h4>${r.items.map(i=>row(`${esc(i.en)} <span style="color:var(--muted)">${esc(i.zh)}</span>`,`× ${i.q}`,fmt(i.amt))).join("")}${row("<b>小計</b>",`× ${r.cups}`,`<b>${fmt(r.sub)}</b>`)}</div>
-  <div class="person"><h4><span>位子明細</span><span style="color:var(--muted);font-weight:400">未含服務費</span></h4>${SEATS.filter(s=>r.seats[s]).map(s=>row(`<span class="seat-tag" style="font-size:12px">${s}</span>`,"",fmt(r.seats[s]))).join("")}</div>
-  <div class="person"><h4><span>帳單明細</span><span></span></h4>${r.bs.map(b=>row(`${hm(b.time)} <span class="seat-tag" style="font-size:12px">${b.seats.join("+")}</span>`,`${b.method}${b.last5?" "+esc(b.last5):""}`,fmt(b.total))).join("")}</div>`;
-  if(r.voided)h+=`<p class="empty">另有 ${r.voided} 張作廢帳單，未計入營收。</p>`;
-  h+=`<div class="actions"><button class="primary" id="copyRep">複製營收明細</button></div>`;
+  <div class="actions"><button class="ghost" id="copyDay">複製今日帳</button></div>`;
   if(showText)h+=`<textarea id="txt" readonly>${esc(showText)}</textarea>`;
   return h;
 }
 
-function renderSheet(){
-  if($("sheet").hidden)return;const c=calc();
-  const keepFocus=document.activeElement&&document.activeElement.id;
-  if(keepFocus==="last5"||keepFocus==="cashIn")return; // 正在輸入時，別人改資料不打斷
-  $("sheetBody").innerHTML=head()+(mode==="order"?sheetOrder(c):mode==="pay"?sheetPay(c):mode==="rep"?sheetRep():sheetHist());
+/* ---- 營收報表（日報 / 月報）---- */
+const rep={kind:"day",day:bday(Date.now()),month:monthOf(bday(Date.now()))};
+let repCache={};const repLoading=new Set();
+function repRange(){
+  if(rep.kind==="day")return{a:bdayStart(rep.day),b:bdayStart(addDays(rep.day,1)),label:bdayLabel(rep.day),tag:rep.day};
+  const [y,m]=parts(rep.month);
+  return{a:new Date(y,m-1,1,CUTOFF).getTime(),b:new Date(y,m,1,CUTOFF).getTime(),label:`${y} 年 ${m} 月`,tag:rep.month};
+}
+async function fetchRange(key,a,b){
+  repLoading.add(key);
+  try{const s=await getDocs(query(collection(db,"bills"),where("time",">=",a),where("time","<",b),orderBy("time")));
+    repCache[key]=s.docs.map(d=>({id:d.id,...d.data()}))}
+  catch(e){console.error(e);repCache[key]=false}
+  repLoading.delete(key);renderSheet();
+}
+/* 回傳區間內的帳單（含作廢）；讀取中回傳 null，失敗回傳 false */
+function repBills(){
+  const {a,b}=repRange();
+  const la=Math.max(a,LIVE_START);
+  const live=la<b?st.bills.filter(x=>x.time>=la&&x.time<b):[];
+  if(!ready||a>=LIVE_START)return live;
+  const ob=Math.min(b,LIVE_START),key=a+"-"+ob;
+  if(!(key in repCache)){if(!repLoading.has(key))fetchRange(key,a,ob);return null}
+  if(repCache[key]===false)return false;
+  return repCache[key].concat(live);
+}
+function repData(all){
+  const {a,b}=repRange();
+  const bs=all.filter(x=>!x.void).sort((x,y)=>x.time-y.time);
+  const voided=all.length-bs.length;
+  const sum=f=>bs.reduce((x,b)=>x+(f(b)||0),0);
+  const items={},seats={},byM={},days={};
+  bs.forEach(b=>{
+    b.lines.forEach(l=>{const k=l.en+"|"+l.zh;const it=items[k]||(items[k]={en:l.en,zh:l.zh,q:0,amt:0});it.q+=l.q;it.amt+=l.price*l.q;seats[l.s]=(seats[l.s]||0)+l.price*l.q});
+    const m=byM[b.method]||(byM[b.method]={n:0,amt:0});m.n++;m.amt+=b.total;
+    const dk=bday(b.time);const d=days[dk]||(days[dk]={n:0,cups:0,sub:0,svc:0,total:0});d.n++;d.cups+=b.cnt;d.sub+=b.sub;d.svc+=b.svc;d.total+=b.total;
+  });
+  const dayList=[];const last=Math.min(b,bdayStart(addDays(bday(Date.now()),1)));
+  for(let k=bday(a);bdayStart(k)<last;k=addDays(k,1))dayList.push({k,...(days[k]||{n:0,cups:0,sub:0,svc:0,total:0})});
+  const total=sum(b=>b.total);
+  return{bs,voided,total,sub:sum(b=>b.sub),svc:sum(b=>b.svc),cups:sum(b=>b.cnt),
+    items:Object.values(items).sort((a,b)=>b.q-a.q||b.amt-a.amt),seats,byM,dayList,openDays:dayList.filter(d=>d.n).length,
+    tr:bs.filter(b=>b.method==="轉帳")};
+}
+const pct=(v,t)=>t?Math.round(v/t*1000)/10+"%":"—";
+function repText(r){
+  const {label}=repRange();
+  let t=`Common Good 營收${rep.kind==="day"?"明細":"月報"} ${label}\n\n總營收 ${r.total}\n酒水 ${r.sub} · 服務費 ${r.svc}\n帳單 ${r.bs.length} 張 · ${r.cups} 杯\n`;
+  if(rep.kind==="month")t+=`營業 ${r.openDays} 天 · 日均 ${r.openDays?Math.round(r.total/r.openDays):0}\n`;
+  t+=`\n【付款方式】\n`;Object.entries(r.byM).forEach(([m,v])=>t+=`${m} ${v.n} 筆 ${v.amt}（${pct(v.amt,r.total)}）\n`);
+  if(rep.kind==="month"){t+=`\n【每日營收】\n`;r.dayList.filter(d=>d.n).forEach(d=>t+=`${bdayLabel(d.k)} ${d.n} 張 ${d.total}\n`);}
+  if(rep.kind==="day"&&r.tr.length){t+=`\n【轉帳對帳】\n`;r.tr.forEach(b=>t+=`${hm(b.time)} ${b.seats.join("+")} 後五碼 ${b.last5||"-"} ${b.total}\n`);}
+  t+=`\n【銷量排行】\n`;r.items.forEach((i,n)=>t+=`${n+1}. ${i.en}（${i.zh}）x${i.q} ${i.amt}\n`);
+  if(rep.kind==="day"){t+=`\n【帳單】\n`;r.bs.forEach(b=>t+=`${hm(b.time)} ${b.seats.join("+")} ${b.method}${b.last5?"("+b.last5+")":""} ${b.total}\n`);}
+  if(r.voided)t+=`\n（另有 ${r.voided} 張作廢，未計入）`;
+  return t;
+}
+function sheetRep(){
+  const today=bday(Date.now()),thisMonth=monthOf(today);
+  const {label}=repRange();
+  const atEnd=rep.kind==="day"?rep.day>=today:rep.month>=thisMonth;
+  const isNow=rep.kind==="day"?rep.day===today:rep.month===thisMonth;
+  let h=`<div class="pick seg"><button data-kind="day" aria-pressed="${rep.kind==="day"}">日報</button><button data-kind="month" aria-pressed="${rep.kind==="month"}">月報</button></div>
+  <div class="rnav"><button class="mini" data-step="-1" aria-label="上一${rep.kind==="day"?"天":"個月"}">‹</button>
+    <b>${isNow?(rep.kind==="day"?"今天 ":"本月 "):""}${label}</b>
+    <button class="mini" data-step="1" aria-label="下一${rep.kind==="day"?"天":"個月"}" ${atEnd?"disabled":""}>›</button>
+    ${isNow?"":`<button class="mini" data-now>${rep.kind==="day"?"回到今天":"回到本月"}</button>`}
+    ${rep.kind==="day"?`<input type="date" id="repDate" value="${rep.day}" max="${today}" aria-label="選擇日期">`:""}</div>
+  <p class="chint">營業日以清晨 6 點為分界，6 點前結的帳算前一天。</p>`;
+  const all=repBills();
+  if(all===null)return h+`<p class="empty">讀取中…</p>`;
+  if(all===false)return h+`<p class="empty">讀取失敗，請確認網路後再試。</p><div class="actions"><button class="ghost" id="repRetry">重新讀取</button></div>`;
+  const r=repData(all);
+  const row=(a,b,c)=>`<div class="line" style="grid-template-columns:1fr auto auto"><span>${a}</span><span class="p" style="color:var(--muted)">${b}</span><span class="p" style="min-width:76px;text-align:right">${c}</span></div>`;
+  const tag=s=>`<span class="seat-tag" style="font-size:12px">${s}</span>`;
+  h+=`<div style="text-align:center;padding:6px 0"><div style="font-size:12px;letter-spacing:.1em;color:var(--muted)">總營收</div><div style="font-size:34px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--leather)">${fmt(r.total)}</div></div>`;
+  h+=rep.kind==="day"
+    ?`<div class="stats"><div><b>${r.bs.length}</b><span>帳單</span></div><div><b>${r.cups}</b><span>杯數</span></div><div><b>${r.bs.length?fmt(r.total/r.bs.length):"—"}</b><span>平均每張</span></div></div>`
+    :`<div class="stats"><div><b>${r.openDays}</b><span>營業天數</span></div><div><b>${r.openDays?fmt(r.total/r.openDays):"—"}</b><span>日均營收</span></div><div><b>${r.bs.length}</b><span>帳單</span></div><div><b>${r.cups}</b><span>杯數</span></div><div><b>${r.bs.length?fmt(r.total/r.bs.length):"—"}</b><span>平均每張</span></div><div><b>${fmt(r.svc)}</b><span>服務費</span></div></div>`;
+  if(!r.bs.length)return h+`<p class="empty">${rep.kind==="day"?"這天":"這個月"}沒有結帳的帳單。</p>`+(r.voided?`<p class="empty">另有 ${r.voided} 張作廢帳單。</p>`:"");
+  h+=`<div class="actions"><button class="primary" id="xlsx">匯出 Excel</button><button class="ghost" id="copyRep">複製文字</button></div>`;
+  const mx=Object.values(r.byM).reduce((a,v)=>Math.max(a,v.amt),0);
+  h+=`<div class="person"><h4><span>收入組成</span><span></span></h4>${row("酒水","",fmt(r.sub))}${row("服務費 10%","",fmt(r.svc))}${row("<b>合計</b>","",`<b>${fmt(r.total)}</b>`)}</div>
+  <div class="person"><h4><span>付款方式</span><span></span></h4>${METHODS.concat(Object.keys(r.byM).filter(m=>!METHODS.includes(m))).filter(m=>r.byM[m]).map(m=>{const v=r.byM[m];
+    return row(`${m} <span class="pct">${pct(v.amt,r.total)}</span><span class="meter"><i style="width:${mx?v.amt/mx*100:0}%"></i></span>`,`${v.n} 筆`,fmt(v.amt))}).join("")}</div>`;
+  if(rep.kind==="month"){
+    const dm=r.dayList.reduce((a,d)=>Math.max(a,d.total),0);
+    h+=`<div class="person"><h4><span>每日營收</span><span style="color:var(--muted);font-weight:400">點日期看當天明細</span></h4>${r.dayList.slice().reverse().map(d=>
+      `<button class="dayrow" data-goday="${d.k}" ${d.n?"":"disabled"}><span>${bdayLabel(d.k)}</span><span class="meter"><i style="width:${dm?d.total/dm*100:0}%"></i></span><span class="p">${d.n?d.n+" 張":""}</span><span class="p amt">${d.n?fmt(d.total):"—"}</span></button>`).join("")}</div>`;
+  }
+  if(rep.kind==="day"&&r.tr.length)h+=`<div class="person"><h4><span>轉帳對帳</span><span style="color:var(--muted);font-weight:400">後五碼</span></h4>${r.tr.map(b=>row(`${hm(b.time)} ${tag(b.seats.join("+"))}`,`<b style="letter-spacing:.1em;color:var(--ink)">${esc(b.last5||"—")}</b>`,fmt(b.total))).join("")}</div>`;
+  h+=`<div class="person"><h4><span>銷量排行</span><span style="color:var(--muted);font-weight:400">未含服務費</span></h4>${r.items.map((i,n)=>row(`<span class="rank">${n+1}</span>${esc(i.en)} <span style="color:var(--muted)">${esc(i.zh)}</span>`,`× ${i.q}`,fmt(i.amt))).join("")}${row("<b>小計</b>",`× ${r.cups}`,`<b>${fmt(r.sub)}</b>`)}</div>
+  <div class="person"><h4><span>位子明細</span><span style="color:var(--muted);font-weight:400">未含服務費</span></h4>${SEATS.filter(s=>r.seats[s]).map(s=>row(tag(s),"",fmt(r.seats[s]))).join("")}</div>`;
+  if(rep.kind==="day")h+=`<div class="person"><h4><span>帳單明細</span><span></span></h4>${r.bs.map(b=>row(`${hm(b.time)} ${tag(b.seats.join("+"))}`,`${b.method}${b.last5?" "+esc(b.last5):""}`,fmt(b.total))).join("")}</div>`;
+  if(r.voided)h+=`<p class="empty">另有 ${r.voided} 張作廢帳單，未計入營收。</p>`;
+  if(showText)h+=`<textarea id="txt" readonly>${esc(showText)}</textarea>`;
+  return h;
+}
+
+/* ---- 匯出 Excel ---- */
+let xlsxP=null;
+function loadXlsx(){
+  return xlsxP||(xlsxP=new Promise((ok,no)=>{
+    if(window.XLSX)return ok(window.XLSX);
+    const s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    s.onload=()=>window.XLSX?ok(window.XLSX):no(new Error("xlsx"));s.onerror=()=>{xlsxP=null;no(new Error("xlsx"))};document.head.appendChild(s);
+  }));
+}
+function saveBlob(blob,name){
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);
+}
+async function exportReport(btn){
+  const all=repBills();if(!Array.isArray(all))return toast("資料還在讀取中");
+  const r=repData(all),{label,tag}=repRange();
+  const summary=[["Common Good 營收報表"],["期間",label],["營業日以清晨 6 點為分界"],[],
+    ["總營收",r.total],["酒水",r.sub],["服務費",r.svc],["帳單數",r.bs.length],["杯數",r.cups],["平均每張",r.bs.length?Math.round(r.total/r.bs.length):0],
+    ...(rep.kind==="month"?[["營業天數",r.openDays],["日均營收",r.openDays?Math.round(r.total/r.openDays):0]]:[]),
+    ["作廢帳單（未計入）",r.voided],[],["付款方式","筆數","金額","比例"],
+    ...Object.entries(r.byM).map(([m,v])=>[m,v.n,v.amt,pct(v.amt,r.total)])];
+  const daily=[["營業日","星期","帳單數","杯數","酒水","服務費","營收"],
+    ...r.dayList.map(d=>{const [y,m,dd]=parts(d.k);return[d.k,WK[new Date(y,m-1,dd).getDay()],d.n,d.cups,d.sub,d.svc,d.total]})];
+  const billRows=[["營業日","時間","位子","付款方式","轉帳後五碼","收現金","杯數","酒水","服務費","合計","品項"],
+    ...r.bs.map(b=>[bday(b.time),hm(b.time),b.seats.join("+"),b.method,b.last5||"",b.cash??"",b.cnt,b.sub,b.svc,b.total,b.lines.map(l=>`${l.zh||l.en}×${l.q}`).join("、")])];
+  const rank=[["排名","品名","中文","數量","金額"],...r.items.map((i,n)=>[n+1,i.en,i.zh,i.q,i.amt])];
+  const lineRows=[["營業日","時間","位子","品名","中文","單價","數量","小計","付款方式"]];
+  r.bs.forEach(b=>b.lines.forEach(l=>lineRows.push([bday(b.time),hm(b.time),l.s,l.en,l.zh,l.price,l.q,l.price*l.q,b.method])));
+  if(btn){btn.disabled=true;btn.textContent="匯出中…"}
+  try{
+    const X=await loadXlsx();const wb=X.utils.book_new();
+    const add=(rows,name,cols)=>{const ws=X.utils.aoa_to_sheet(rows);ws["!cols"]=cols.map(w=>({wch:w}));X.utils.book_append_sheet(wb,ws,name)};
+    add(summary,"摘要",[18,16,12,10]);add(daily,"每日營收",[12,6,8,8,10,10,10]);add(billRows,"帳單",[12,7,8,8,10,8,6,8,8,8,40]);
+    add(rank,"銷量排行",[6,28,18,8,10]);add(lineRows,"品項明細",[12,7,6,28,18,8,6,8,8]);
+    const out=X.write(wb,{bookType:"xlsx",type:"array"});saveBlob(new Blob([out],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),`CommonGood_Revenue_${tag}.xlsx`);toast("已下載 Excel");
+  }catch(e){
+    console.error(e);
+    const csv="﻿"+billRows.map(row=>row.map(c=>{c=String(c??"");return /[",\r\n]/.test(c)?`"${c.replace(/"/g,'""')}"`:c}).join(",")).join("\r\n");
+    saveBlob(new Blob([csv],{type:"text/csv;charset=utf-8"}),`CommonGood_Bills_${tag}.csv`);
+    toast("Excel 元件載入失敗，已改下載 CSV（Excel 可直接開）");
+  }
+  if(btn){btn.disabled=false;btn.textContent="匯出 Excel"}
+}
+
+/* ---- 酒單管理（只有管理員帳號）---- */
+let draft=null, openItem=null, menuSaving=false;
+const clone=o=>JSON.parse(JSON.stringify(o));
+const menuDirty=()=>!!draft&&JSON.stringify(draft)!==JSON.stringify(MENU);
+function sheetMenu(){
+  if(!isAdmin())return `<p class="empty">只有管理員帳號可以修改酒單。</p>`;
+  if(!draft)draft=clone(MENU);
+  const dirty=menuDirty();
+  const F=(si,ii,f,lab,extra="")=>`<label>${lab}<input data-f="${f}" data-si="${si}" data-ii="${ii}" value="${esc(draft[si].items[ii][f])}" ${extra}></label>`;
+  let h=`<p class="chint">改完按最下面的「儲存酒單」才會生效，所有平板會同步更新。改價格也會套用到還沒結帳的點單，已經結帳的帳不受影響。用不到的品項請「下架」，不會影響過去的報表。</p>`;
+  draft.forEach((sec,si)=>{
+    h+=`<div class="ed-sec${sec.off?" off":""}">
+      <div class="ed-row"><input data-sf="zh" data-si="${si}" value="${esc(sec.zh)}" placeholder="分類中文名" aria-label="分類中文名"><input data-sf="en" data-si="${si}" value="${esc(sec.en)}" placeholder="分類英文名" aria-label="分類英文名"></div>
+      <div class="ed-tools"><button class="mini" data-smv="${si}:-1" ${si===0?"disabled":""} aria-label="分類往上">↑</button><button class="mini" data-smv="${si}:1" ${si===draft.length-1?"disabled":""} aria-label="分類往下">↓</button><button class="mini" data-soff="${si}">${sec.off?"顯示這個分類":"隱藏這個分類"}</button>${sec.off?`<em>已隱藏</em>`:""}</div>
+      ${sec.items.map((it,ii)=>{const open=openItem===it.id;
+        return `<div class="ed-item${it.off?" off":""}${open?" open":""}">
+          <button class="ed-sum" data-open="${esc(it.id)}"><span class="ed-nm"><b>${esc(it.en||"（未命名）")}</b> <span>${esc(it.zh)}</span>${it.off?" <em>已下架</em>":""}</span><span class="p">${esc(it.price)}</span></button>
+          ${open?`<div class="ed-fields">${F(si,ii,"en","英文名稱")}${F(si,ii,"zh","中文名稱")}${F(si,ii,"price","價格",'inputmode="numeric"')}${F(si,ii,"note","說明")}${F(si,ii,"ing","成分")}${F(si,ii,"stage","標籤（可空白）")}
+            <div class="ed-tools"><button class="mini" data-imv="${si}:${ii}:-1" ${ii===0?"disabled":""}>↑ 往上</button><button class="mini" data-imv="${si}:${ii}:1" ${ii===sec.items.length-1?"disabled":""}>↓ 往下</button><button class="mini" data-ioff="${si}:${ii}">${it.off?"重新上架":"下架"}</button><button class="mini" data-open="">收起</button></div></div>`:""}
+        </div>`}).join("")}
+      <button class="mini go" data-iadd="${si}">＋ 在「${esc(sec.zh||sec.en||"這個分類")}」新增品項</button>
+    </div>`;
+  });
+  h+=`<div class="actions"><button class="ghost" id="secAdd">＋ 新增分類</button></div>
+  <div class="actions"><button class="primary" id="menuSave" ${!dirty||menuSaving?'disabled style="opacity:.5"':""}>${menuSaving?"儲存中…":"儲存酒單"}</button><button class="ghost" id="menuReset" ${dirty?"":'disabled style="opacity:.5"'}>放棄修改</button></div>`;
+  return h;
+}
+function validateMenu(m){
+  for(const s of m){if(!s.zh.trim()&&!s.en.trim())return "有分類沒有名稱";
+    for(const i of s.items){if(!i.en.trim()&&!i.zh.trim())return `「${s.zh||s.en}」裡有品項沒有名稱`;if(!(i.price>=0))return `「${i.zh||i.en}」的價格不對`}}
+  return "";
+}
+async function saveMenu(){
+  if(!isAdmin()||!draft)return;
+  draft.forEach(s=>{s.en=s.en.trim();s.zh=s.zh.trim();s.items.forEach(i=>{["en","zh","note","ing","stage"].forEach(f=>i[f]=String(i[f]||"").trim());i.price=Math.max(0,Math.round(Number(i.price)||0))})});
+  const err=validateMenu(draft);if(err){toast(err);return}
+  menuSaving=true;renderSheet();
+  try{await setDoc(doc(db,"settings","menu"),{sections:draft,updated:Date.now(),by:me.email||""});draft=null;openItem=null;toast("酒單已更新，所有平板會同步")}
+  catch(e){fail(e)}
+  menuSaving=false;renderSheet();
+}
+
+/* ---- sheet ---- */
+function renderSheet(passive){
+  if($("sheet").hidden)return;
+  const a=document.activeElement;
+  /* 正在輸入時，其他平板的更新先不重畫，避免打斷 */
+  if(passive&&a&&a.tagName==="INPUT"&&a.type!=="checkbox"&&$("sheetBody").contains(a))return;
+  const c=calc();
+  $("sheetBody").innerHTML=head()+(mode==="order"?sheetOrder(c):mode==="pay"?sheetPay(c):mode==="rep"?sheetRep():mode==="menu"?sheetMenu():sheetHist());
   const B=$("sheetBody"),on=(sel,fn)=>B.querySelectorAll(sel).forEach(b=>b.onclick=()=>fn(b));
   $("closeSheet").onclick=closeSheet;
   on("[data-mode]",b=>{mode=b.dataset.mode;confirming=null;showText=false;renderSheet()});
   on("[data-no]",()=>{confirming=null;renderSheet()});
-  const doCopy=t=>navigator.clipboard.writeText(t).then(()=>toast("已複製")).catch(()=>{showText=t;renderSheet();const a=$("txt");a.focus();a.select();toast("請長按文字複製")});
+  const doCopy=t=>navigator.clipboard.writeText(t).then(()=>toast("已複製")).catch(()=>{showText=t;renderSheet();const x=$("txt");x.focus();x.select();toast("請長按文字複製")});
   if(mode==="order"){
-    on("[data-k]",b=>{const [id,s]=b.dataset.k.split("|");change(id,s,-1)});
+    on("[data-k]",b=>{const k=b.dataset.k,i=k.lastIndexOf("|");change(k.slice(0,i),k.slice(i+1),-1)});
     on("[data-clr]",b=>{confirming=b.dataset.clr;renderSheet()});
     on("[data-copy]",b=>doCopy(orderText(c,b.dataset.copy)));
     on("[data-pay]",b=>{co={seats:[b.dataset.pay],method:co.method,cash:"",last5:""};mode="pay";renderSheet()});
@@ -609,30 +835,56 @@ function renderSheet(){
     };
   }
   if(mode==="rep"){
-    on("[data-day]",b=>{repDay=b.dataset.day;showText=false;renderSheet()});
-    if($("copyRep"))$("copyRep").onclick=()=>doCopy(repText(repData()));
+    on("[data-kind]",b=>{rep.kind=b.dataset.kind;if(rep.kind==="month")rep.month=monthOf(rep.day);showText=false;renderSheet()});
+    on("[data-step]",b=>{const n=Number(b.dataset.step);if(rep.kind==="day")rep.day=addDays(rep.day,n);else rep.month=addMonths(rep.month,n);showText=false;renderSheet()});
+    on("[data-now]",()=>{rep.day=bday(Date.now());rep.month=monthOf(rep.day);showText=false;renderSheet()});
+    on("[data-goday]",b=>{rep.kind="day";rep.day=b.dataset.goday;showText=false;renderSheet();$("sheet").scrollTop=0});
+    if($("repDate"))$("repDate").onchange=e=>{const v=e.target.value;if(/^\d{4}-\d{2}-\d{2}$/.test(v)&&v<=bday(Date.now())){rep.day=v;e.target.blur();showText=false;renderSheet()}};
+    if($("repRetry"))$("repRetry").onclick=()=>{for(const k in repCache)if(repCache[k]===false)delete repCache[k];renderSheet()};
+    if($("copyRep"))$("copyRep").onclick=()=>{const all=repBills();if(Array.isArray(all))doCopy(repText(repData(all)))};
+    if($("xlsx"))$("xlsx").onclick=e=>exportReport(e.currentTarget);
   }
   if(mode==="hist"){
     on("[data-void]",b=>{confirming="v"+b.dataset.void;renderSheet()});
     on("[data-vyes]",async b=>{const bill=st.bills.find(x=>x.id===b.dataset.vyes);confirming=null;
       if(bill&&await voidBill(bill))toast("已作廢，酒已退回點單");renderSheet()});
-    on("[data-hyes]",async()=>{confirming=null;if(await store.clearBills())toast("紀錄已清除");renderSheet()});
-    if($("clrHist"))$("clrHist").onclick=()=>{confirming="H";renderSheet()};
     if($("copyDay"))$("copyDay").onclick=()=>{const today=bday(Date.now());const tb=st.bills.filter(b=>!b.void&&bday(b.time)===today);
       let t=`Common Good 今日帳 ${bdayLabel(today)}\n`;
       tb.forEach(b=>t+=`${hm(b.time)} ${b.seats.join("+")} ${b.method}${b.last5?"("+b.last5+")":""} ${b.total}${b.svc?"（含服務費"+b.svc+"）":""}\n`);
       t+=`\n共 ${tb.length} 張 · 營收 ${tb.reduce((x,b)=>x+b.total,0)}`;doCopy(t)};
   }
+  if(mode==="menu"&&draft){
+    const sync=()=>{const d=menuDirty(),s=$("menuSave"),r=$("menuReset");if(s&&!menuSaving){s.disabled=!d;s.style.opacity=d?"":".5"}if(r){r.disabled=!d;r.style.opacity=d?"":".5"}};
+    B.querySelectorAll("input[data-f]").forEach(inp=>inp.oninput=()=>{const it=draft[+inp.dataset.si].items[+inp.dataset.ii];const f=inp.dataset.f;
+      if(f==="price"){const v=inp.value.replace(/\D/g,"").slice(0,6);if(v!==inp.value)inp.value=v;it.price=v===""?0:Number(v)}else it[f]=inp.value;
+      const sum=inp.closest(".ed-item").querySelector(".ed-sum");if(sum&&(f==="en"||f==="zh"||f==="price")){sum.querySelector("b").textContent=it.en||"（未命名）";sum.querySelector(".ed-nm>span").textContent=it.zh;sum.querySelector(".p").textContent=it.price}
+      sync()});
+    B.querySelectorAll("input[data-sf]").forEach(inp=>inp.oninput=()=>{draft[+inp.dataset.si][inp.dataset.sf]=inp.value;sync()});
+    on("[data-open]",b=>{openItem=b.dataset.open===openItem?null:(b.dataset.open||null);renderSheet()});
+    on("[data-smv]",b=>{const [si,d]=b.dataset.smv.split(":").map(Number);const j=si+d;if(j<0||j>=draft.length)return;[draft[si],draft[j]]=[draft[j],draft[si]];renderSheet()});
+    on("[data-soff]",b=>{const s=draft[+b.dataset.soff];s.off=!s.off;renderSheet()});
+    on("[data-imv]",b=>{const [si,ii,d]=b.dataset.imv.split(":").map(Number);const a=draft[si].items,j=ii+d;if(j<0||j>=a.length)return;[a[ii],a[j]]=[a[j],a[ii]];renderSheet()});
+    on("[data-ioff]",b=>{const [si,ii]=b.dataset.ioff.split(":").map(Number);const it=draft[si].items[ii];it.off=!it.off;renderSheet()});
+    on("[data-iadd]",b=>{const it={id:uidm("m"),en:"",zh:"",price:0,ing:"",note:"",stage:"",off:false};draft[+b.dataset.iadd].items.push(it);openItem=it.id;renderSheet();
+      const f=B.querySelector(`.ed-item.open input[data-f="en"]`);if(f){f.focus();f.scrollIntoView({block:"center"})}});
+    if($("secAdd"))$("secAdd").onclick=()=>{const it={id:uidm("m"),en:"",zh:"",price:0,ing:"",note:"",stage:"",off:false};
+      draft.push({id:uidm("s"),en:"",zh:"新分類",off:false,items:[it]});openItem=it.id;renderSheet();
+      const f=B.querySelectorAll('input[data-sf="zh"]');if(f.length){const x=f[f.length-1];x.focus();x.select();x.scrollIntoView({block:"center"})}};
+    if($("menuSave"))$("menuSave").onclick=saveMenu;
+    if($("menuReset"))$("menuReset").onclick=()=>{draft=null;openItem=null;renderSheet();toast("已放棄修改")};
+  }
 }
 function openSheet(m){mode=m||"order";$("sheet").hidden=false;$("scrim").hidden=false;renderSheet()}
 function closeSheet(){$("sheet").hidden=true;$("scrim").hidden=true;confirming=null;showText=false}
-let tt;function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2400)}
-function render(){renderSeats();renderMenu();renderBar();renderSheet()}
+let tt;function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2600)}
+function render(passive){renderSeats();renderMenu();renderBar();renderSheet(passive)}
 
 $("openSheet").onclick=()=>openSheet("order");
 $("openPay").onclick=()=>{co.seats=st.seat&&seatCount(st.seat)?[st.seat]:[];co.cash="";co.last5="";openSheet("pay")};
-$("scrim").onclick=closeSheet;
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("sheet").hidden)closeSheet()});
+$("adminBtn").onclick=()=>openSheet("menu");
+$("scrim").onclick=()=>{if(mode==="menu"&&menuDirty()){toast("酒單還沒儲存。要離開請先按「放棄修改」或「儲存酒單」");return}closeSheet()};
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("sheet").hidden)$("scrim").onclick()});
+addEventListener("beforeunload",e=>{if(menuDirty()){e.preventDefault();e.returnValue=""}});
 $("cForm").addEventListener("submit",e=>{
   e.preventDefault();
   if(!st.seat)return needSeat();
@@ -645,8 +897,10 @@ $("cForm").addEventListener("submit",e=>{
   $("cName").value="";$("cPrice").value="";document.activeElement&&document.activeElement.blur();
   toast(`${st.seat}：${n} ${p} 元已加入`);
 });
-$("randomBtn").onclick=()=>{if(!st.seat)return needSeat();const ids=Object.keys(ITEMS).filter(i=>!i.startsWith("bar-")&&!i.startsWith("cx:"));const id=ids[Math.floor(Math.random()*ids.length)];const it=ITEMS[id];
-  change(id,st.seat,1);toast(`🎲 ${st.seat}：${it.en}（${it.zh}）`);};
+$("randomBtn").onclick=()=>{if(!st.seat)return needSeat();
+  const pool=visibleSections().filter(s=>s.id!=="bar").flatMap(s=>s.items.filter(i=>!i.off));if(!pool.length)return;
+  const it=pool[Math.floor(Math.random()*pool.length)];change(it.id,st.seat,1);toast(`🎲 ${st.seat}：${it.en}（${it.zh}）`);};
+if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("./sw.js").catch(e=>console.warn(e));
 renderTabs();render();setSync();
 </script>
 </body>

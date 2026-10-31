@@ -1,0 +1,24 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isAdmin() {
+      return signedIn() && request.auth.token.email in ['admin@commongood.tw'];
+    }
+
+    // 點單：所有登入的平板都能讀寫
+    match /cups/{id} {
+      allow read, write: if signedIn();
+    }
+    // 帳單：可以新增、作廢；只有管理員能刪除
+    match /bills/{id} {
+      allow read, create, update: if signedIn();
+      allow delete: if isAdmin();
+    }
+    // 設定：服務費開關大家都能改；酒單只有管理員能改
+    match /settings/{id} {
+      allow read: if signedIn();
+      allow write: if signedIn() && (id != 'menu' || isAdmin());
+    }
+  }
+}
